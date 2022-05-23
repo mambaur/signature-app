@@ -1,10 +1,12 @@
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_signature_view/flutter_signature_view.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:image_gallery_saver/image_gallery_saver.dart';
-import 'package:signature/signature.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:simple_signature/result_signature.dart';
 
 void main() {
@@ -32,6 +34,8 @@ class MyApp extends StatelessWidget {
   }
 }
 
+enum StatusAd { initial, loaded }
+
 class MyHomePage extends StatefulWidget {
   const MyHomePage({Key? key}) : super(key: key);
 
@@ -40,52 +44,75 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  double _currentSliderValue = 1;
+  double _currentSliderValue = 5;
   Color penColor = Colors.black;
   double strokeWith = 3.0;
+  StrokeCap strokeCap = StrokeCap.round;
 
-  SignatureController? _controller;
+  BannerAd? myBanner;
+
+  StatusAd statusAd = StatusAd.initial;
+
+  BannerAdListener listener() => BannerAdListener(
+        // Called when an ad is successfully received.
+        onAdLoaded: (Ad ad) {
+          if (kDebugMode) {
+            print('Ad Loaded.');
+          }
+          setState(() {
+            statusAd = StatusAd.loaded;
+          });
+        },
+      );
+
+  SignatureView? _signatureView;
 
   @override
   void initState() {
-    _controller = SignatureController(
-      penStrokeWidth: 2,
-      penColor: Colors.black,
-      exportBackgroundColor: Colors.transparent,
-      exportPenColor: Colors.black,
+    myBanner = BannerAd(
+      // test banner
+      adUnitId: 'ca-app-pub-3940256099942544/6300978111',
+      //
+      // adUnitId: 'ca-app-pub-2465007971338713/1087521621',
+      size: AdSize.banner,
+      request: const AdRequest(),
+      listener: listener(),
     );
+    myBanner!.load();
+
+    refreshCanvas();
 
     super.initState();
-    _controller!.addListener(() => print('Value changed'));
   }
 
-  changeSignature() {
-    _controller = SignatureController(
-      penStrokeWidth: strokeWith,
-      penColor: penColor,
-      exportBackgroundColor: Colors.transparent,
-      exportPenColor: penColor,
+  void refreshCanvas() {
+    _signatureView = SignatureView(
+      backgroundColor: Colors.transparent,
+      penStyle: Paint()
+        ..color = penColor
+        ..strokeCap = strokeCap
+        ..strokeWidth = _currentSliderValue,
+      onSigned: (data) {
+        print("On change $data");
+      },
     );
-    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    myBanner!.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title:
-            Text('Signature', style: GoogleFonts.pacifico(color: Colors.black)),
+        title: Text('Signature',
+            style: GoogleFonts.pacifico(color: Colors.black, fontSize: 23)),
         elevation: 0.5,
         backgroundColor: Colors.white,
         actions: [
-          IconButton(
-              onPressed: () {
-                _chooseColorsDialog();
-              },
-              icon: Icon(
-                Icons.palette,
-                color: Colors.black,
-              )),
           IconButton(
               onPressed: () {
                 _updateBrushDialog();
@@ -99,16 +126,23 @@ class _MyHomePageState extends State<MyHomePage> {
       backgroundColor: Colors.white,
       body: Column(
         children: [
+          statusAd == StatusAd.loaded
+              ? Container(
+                  margin: EdgeInsets.only(top: 10, left: 10, right: 10),
+                  alignment: Alignment.center,
+                  child: AdWidget(ad: myBanner!),
+                  width: myBanner!.size.width.toDouble(),
+                  height: myBanner!.size.height.toDouble(),
+                )
+              : Container(),
           Expanded(
-            child: Signature(
-              controller: _controller!,
-              height: double.infinity,
-              backgroundColor: Colors.white,
+            child: Container(
+              child: _signatureView,
             ),
           ),
           Container(
-            margin: EdgeInsets.all(15),
-            padding: EdgeInsets.symmetric(vertical: 5),
+            margin: const EdgeInsets.all(15),
+            padding: const EdgeInsets.symmetric(vertical: 5),
             decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20), color: Colors.black),
             child: Row(
@@ -119,40 +153,38 @@ class _MyHomePageState extends State<MyHomePage> {
                   icon: const Icon(Icons.save),
                   color: Colors.white,
                   onPressed: () async {
-                    if (_controller!.isNotEmpty) {
-                      // final Uint8List? data = await _controller!.toPngBytes();
-                      final Uint8List? data = await _controller!.toPngBytes();
-                      if (data != null) {
-                        Navigator.push(context,
-                            MaterialPageRoute(builder: (builder) {
-                          return ResultSignature(
-                            image: data,
-                          );
-                        }));
-                      }
+                    if (_signatureView!.isEmpty) {
+                      Fluttertoast.showToast(msg: 'Your signature is empty');
+                      return;
                     }
+                    Uint8List? data = await _signatureView!.exportBytes();
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (builder) {
+                      return ResultSignature(
+                        image: data,
+                      );
+                    }));
                   },
                 ),
                 IconButton(
-                  icon: const Icon(Icons.undo),
+                  icon: const Icon(Icons.draw),
                   color: Colors.white,
-                  onPressed: () {
-                    // changeColor();
-                    setState(() => _controller!.undo());
+                  onPressed: () async {
+                    _strokeCapDialog();
                   },
                 ),
                 IconButton(
-                  icon: const Icon(Icons.redo),
+                  icon: const Icon(Icons.palette),
                   color: Colors.white,
                   onPressed: () {
-                    setState(() => _controller!.redo());
+                    _chooseColorsDialog();
                   },
                 ),
                 IconButton(
                   icon: const Icon(Icons.clear),
                   color: Colors.white,
-                  onPressed: () {
-                    setState(() => _controller!.clear());
+                  onPressed: () async {
+                    _signatureView!.clear();
                   },
                 ),
               ],
@@ -172,95 +204,181 @@ class _MyHomePageState extends State<MyHomePage> {
           content: SingleChildScrollView(
             child: ListBody(
               children: <Widget>[
-                ListTile(
-                  onTap: () {
-                    penColor = Colors.black;
-                    changeSignature();
-                    Navigator.pop(context);
-                  },
-                  leading: Container(
-                    width: 25,
-                    height: 25,
-                    decoration: BoxDecoration(
-                        color: Colors.black, shape: BoxShape.circle),
+                Container(
+                  color: penColor == Colors.black ? Colors.grey.shade100 : null,
+                  child: ListTile(
+                    onTap: () {
+                      penColor = Colors.black;
+                      refreshCanvas();
+                      setState(() {});
+                      Navigator.pop(context);
+                    },
+                    leading: Container(
+                      width: 25,
+                      height: 25,
+                      decoration: BoxDecoration(
+                          color: Colors.black, shape: BoxShape.circle),
+                    ),
+                    title: Text('Black'),
+                    trailing: Icon(Icons.chevron_right),
                   ),
-                  title: Text('Black'),
-                  trailing: Icon(Icons.chevron_right),
                 ),
-                ListTile(
-                  onTap: () {
-                    penColor = Colors.red;
-                    changeSignature();
-                    Navigator.pop(context);
-                  },
-                  leading: Container(
-                    width: 25,
-                    height: 25,
-                    decoration: BoxDecoration(
-                        color: Colors.red, shape: BoxShape.circle),
+                Container(
+                  color: penColor == Colors.red ? Colors.grey.shade100 : null,
+                  child: ListTile(
+                    onTap: () {
+                      penColor = Colors.red;
+                      refreshCanvas();
+                      setState(() {});
+                      Navigator.pop(context);
+                    },
+                    leading: Container(
+                      width: 25,
+                      height: 25,
+                      decoration: BoxDecoration(
+                          color: Colors.red, shape: BoxShape.circle),
+                    ),
+                    title: Text('Red'),
+                    trailing: Icon(Icons.chevron_right),
                   ),
-                  title: Text('Red'),
-                  trailing: Icon(Icons.chevron_right),
                 ),
-                ListTile(
-                  onTap: () {
-                    penColor = Colors.green;
-                    changeSignature();
-                    Navigator.pop(context);
-                  },
-                  leading: Container(
-                    width: 25,
-                    height: 25,
-                    decoration: BoxDecoration(
-                        color: Colors.green, shape: BoxShape.circle),
+                Container(
+                  color: penColor == Colors.green ? Colors.grey.shade100 : null,
+                  child: ListTile(
+                    onTap: () {
+                      penColor = Colors.green;
+                      refreshCanvas();
+                      setState(() {});
+                      Navigator.pop(context);
+                    },
+                    leading: Container(
+                      width: 25,
+                      height: 25,
+                      decoration: BoxDecoration(
+                          color: Colors.green, shape: BoxShape.circle),
+                    ),
+                    title: Text('Green'),
+                    trailing: Icon(Icons.chevron_right),
                   ),
-                  title: Text('Green'),
-                  trailing: Icon(Icons.chevron_right),
                 ),
-                ListTile(
-                  onTap: () {
-                    penColor = Colors.blue;
-                    changeSignature();
-                    Navigator.pop(context);
-                  },
-                  leading: Container(
-                    width: 25,
-                    height: 25,
-                    decoration: BoxDecoration(
-                        color: Colors.blue, shape: BoxShape.circle),
+                Container(
+                  color: penColor == Colors.blue ? Colors.grey.shade100 : null,
+                  child: ListTile(
+                    onTap: () {
+                      penColor = Colors.blue;
+                      refreshCanvas();
+                      setState(() {});
+                      Navigator.pop(context);
+                    },
+                    leading: Container(
+                      width: 25,
+                      height: 25,
+                      decoration: BoxDecoration(
+                          color: Colors.blue, shape: BoxShape.circle),
+                    ),
+                    title: Text('Blue'),
+                    trailing: Icon(Icons.chevron_right),
                   ),
-                  title: Text('Blue'),
-                  trailing: Icon(Icons.chevron_right),
                 ),
-                ListTile(
-                  onTap: () {
-                    penColor = Colors.yellow;
-                    changeSignature();
-                    Navigator.pop(context);
-                  },
-                  leading: Container(
-                    width: 25,
-                    height: 25,
-                    decoration: BoxDecoration(
-                        color: Colors.yellow, shape: BoxShape.circle),
+                Container(
+                  color:
+                      penColor == Colors.yellow ? Colors.grey.shade100 : null,
+                  child: ListTile(
+                    onTap: () {
+                      penColor = Colors.yellow;
+                      refreshCanvas();
+                      setState(() {});
+                      Navigator.pop(context);
+                    },
+                    leading: Container(
+                      width: 25,
+                      height: 25,
+                      decoration: BoxDecoration(
+                          color: Colors.yellow, shape: BoxShape.circle),
+                    ),
+                    title: Text('Yelllow'),
+                    trailing: Icon(Icons.chevron_right),
                   ),
-                  title: Text('Yelllow'),
-                  trailing: Icon(Icons.chevron_right),
                 ),
-                ListTile(
-                  onTap: () {
-                    penColor = Colors.brown;
-                    changeSignature();
-                    Navigator.pop(context);
-                  },
-                  leading: Container(
-                    width: 25,
-                    height: 25,
-                    decoration: BoxDecoration(
-                        color: Colors.brown, shape: BoxShape.circle),
+                Container(
+                  color: penColor == Colors.brown ? Colors.grey.shade100 : null,
+                  child: ListTile(
+                    onTap: () {
+                      penColor = Colors.brown;
+                      refreshCanvas();
+                      setState(() {});
+                      Navigator.pop(context);
+                    },
+                    leading: Container(
+                      width: 25,
+                      height: 25,
+                      decoration: BoxDecoration(
+                          color: Colors.brown, shape: BoxShape.circle),
+                    ),
+                    title: Text('Brown'),
+                    trailing: Icon(Icons.chevron_right),
                   ),
-                  title: Text('Brown'),
-                  trailing: Icon(Icons.chevron_right),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _strokeCapDialog() async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                Container(
+                  color: strokeCap == StrokeCap.round
+                      ? Colors.grey.shade100
+                      : null,
+                  child: ListTile(
+                    onTap: () {
+                      strokeCap = StrokeCap.round;
+                      refreshCanvas();
+                      setState(() {});
+                      Navigator.pop(context);
+                    },
+                    title: Text('Round'),
+                    trailing: Icon(Icons.chevron_right),
+                  ),
+                ),
+                Container(
+                  color:
+                      strokeCap == StrokeCap.butt ? Colors.grey.shade100 : null,
+                  child: ListTile(
+                    onTap: () {
+                      strokeCap = StrokeCap.butt;
+                      refreshCanvas();
+                      setState(() {});
+                      Navigator.pop(context);
+                    },
+                    title: Text('Butt'),
+                    trailing: Icon(Icons.chevron_right),
+                  ),
+                ),
+                Container(
+                  color: strokeCap == StrokeCap.square
+                      ? Colors.grey.shade100
+                      : null,
+                  child: ListTile(
+                    onTap: () {
+                      strokeCap = StrokeCap.square;
+                      refreshCanvas();
+                      setState(() {});
+                      Navigator.pop(context);
+                    },
+                    title: Text('Square'),
+                    trailing: Icon(Icons.chevron_right),
+                  ),
                 ),
               ],
             ),
@@ -290,17 +408,19 @@ class _MyHomePageState extends State<MyHomePage> {
                       ),
                       Expanded(
                         child: Slider(
-                          activeColor: Colors.grey,
-                          inactiveColor: Colors.black.withOpacity(0.2),
+                          activeColor: Colors.grey.shade200,
+                          inactiveColor: Colors.black.withOpacity(0.1),
                           value: _currentSliderValue,
+                          min: 1,
                           max: 20,
                           divisions: 10,
                           label: _currentSliderValue.round().toString(),
                           onChanged: (double value) {
-                            setState(() {
+                            setState(() {});
+                            this.setState(() {
                               _currentSliderValue = value;
                               strokeWith = _currentSliderValue.toDouble();
-                              changeSignature();
+                              refreshCanvas();
                             });
                           },
                         ),

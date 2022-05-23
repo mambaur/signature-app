@@ -1,4 +1,4 @@
-package com.example.signature
+package com.caraguna.signature
 
 import io.flutter.embedding.android.FlutterActivity
 
