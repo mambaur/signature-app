@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -70,10 +68,9 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     myBanner = BannerAd(
-      // test banner
-      // adUnitId: 'ca-app-pub-3940256099942544/6300978111',
-      //
-      adUnitId: 'ca-app-pub-2465007971338713/1087521621',
+      adUnitId: kDebugMode
+          ? 'ca-app-pub-3940256099942544/6300978111'
+          : 'ca-app-pub-2465007971338713/1087521621',
       size: AdSize.banner,
       request: const AdRequest(),
       listener: listener(),
@@ -93,7 +90,7 @@ class _MyHomePageState extends State<MyHomePage> {
         ..strokeCap = strokeCap
         ..strokeWidth = _currentSliderValue,
       onSigned: (data) {
-        print("On change $data");
+        if (kDebugMode) print("On change $data");
       },
     );
   }
@@ -117,7 +114,7 @@ class _MyHomePageState extends State<MyHomePage> {
               onPressed: () {
                 _updateBrushDialog();
               },
-              icon: Icon(
+              icon: const Icon(
                 Icons.brush,
                 color: Colors.black,
               )),
@@ -128,11 +125,11 @@ class _MyHomePageState extends State<MyHomePage> {
         children: [
           statusAd == StatusAd.loaded
               ? Container(
-                  margin: EdgeInsets.only(top: 10, left: 10, right: 10),
+                  margin: const EdgeInsets.only(top: 10, left: 10, right: 10),
                   alignment: Alignment.center,
-                  child: AdWidget(ad: myBanner!),
                   width: myBanner!.size.width.toDouble(),
                   height: myBanner!.size.height.toDouble(),
+                  child: AdWidget(ad: myBanner!),
                 )
               : Container(),
           Expanded(
@@ -158,6 +155,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       return;
                     }
                     Uint8List? data = await _signatureView!.exportBytes();
+                    // ignore: use_build_context_synchronously
                     Navigator.push(context,
                         MaterialPageRoute(builder: (builder) {
                       return ResultSignature(
@@ -216,11 +214,11 @@ class _MyHomePageState extends State<MyHomePage> {
                     leading: Container(
                       width: 25,
                       height: 25,
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                           color: Colors.black, shape: BoxShape.circle),
                     ),
-                    title: Text('Black'),
-                    trailing: Icon(Icons.chevron_right),
+                    title: const Text('Black'),
+                    trailing: const Icon(Icons.chevron_right),
                   ),
                 ),
                 Container(
@@ -235,11 +233,11 @@ class _MyHomePageState extends State<MyHomePage> {
                     leading: Container(
                       width: 25,
                       height: 25,
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                           color: Colors.red, shape: BoxShape.circle),
                     ),
-                    title: Text('Red'),
-                    trailing: Icon(Icons.chevron_right),
+                    title: const Text('Red'),
+                    trailing: const Icon(Icons.chevron_right),
                   ),
                 ),
                 Container(
@@ -254,11 +252,11 @@ class _MyHomePageState extends State<MyHomePage> {
                     leading: Container(
                       width: 25,
                       height: 25,
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                           color: Colors.green, shape: BoxShape.circle),
                     ),
-                    title: Text('Green'),
-                    trailing: Icon(Icons.chevron_right),
+                    title: const Text('Green'),
+                    trailing: const Icon(Icons.chevron_right),
                   ),
                 ),
                 Container(
@@ -273,11 +271,11 @@ class _MyHomePageState extends State<MyHomePage> {
                     leading: Container(
                       width: 25,
                       height: 25,
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                           color: Colors.blue, shape: BoxShape.circle),
                     ),
-                    title: Text('Blue'),
-                    trailing: Icon(Icons.chevron_right),
+                    title: const Text('Blue'),
+                    trailing: const Icon(Icons.chevron_right),
                   ),
                 ),
                 Container(
@@ -293,11 +291,11 @@ class _MyHomePageState extends State<MyHomePage> {
                     leading: Container(
                       width: 25,
                       height: 25,
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                           color: Colors.yellow, shape: BoxShape.circle),
                     ),
-                    title: Text('Yelllow'),
-                    trailing: Icon(Icons.chevron_right),
+                    title: const Text('Yelllow'),
+                    trailing: const Icon(Icons.chevron_right),
                   ),
                 ),
                 Container(
@@ -312,11 +310,11 @@ class _MyHomePageState extends State<MyHomePage> {
                     leading: Container(
                       width: 25,
                       height: 25,
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                           color: Colors.brown, shape: BoxShape.circle),
                     ),
-                    title: Text('Brown'),
-                    trailing: Icon(Icons.chevron_right),
+                    title: const Text('Brown'),
+                    trailing: const Icon(Icons.chevron_right),
                   ),
                 ),
               ],
@@ -347,8 +345,8 @@ class _MyHomePageState extends State<MyHomePage> {
                       setState(() {});
                       Navigator.pop(context);
                     },
-                    title: Text('Round'),
-                    trailing: Icon(Icons.chevron_right),
+                    title: const Text('Round'),
+                    trailing: const Icon(Icons.chevron_right),
                   ),
                 ),
                 Container(
@@ -361,8 +359,8 @@ class _MyHomePageState extends State<MyHomePage> {
                       setState(() {});
                       Navigator.pop(context);
                     },
-                    title: Text('Butt'),
-                    trailing: Icon(Icons.chevron_right),
+                    title: const Text('Butt'),
+                    trailing: const Icon(Icons.chevron_right),
                   ),
                 ),
                 Container(
@@ -376,8 +374,8 @@ class _MyHomePageState extends State<MyHomePage> {
                       setState(() {});
                       Navigator.pop(context);
                     },
-                    title: Text('Square'),
-                    trailing: Icon(Icons.chevron_right),
+                    title: const Text('Square'),
+                    trailing: const Icon(Icons.chevron_right),
                   ),
                 ),
               ],

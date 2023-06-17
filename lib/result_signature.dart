@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:math';
-import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -37,13 +37,14 @@ class _ResultSignatureState extends State<ResultSignature> {
       await file.writeAsBytes(widget.image!);
       image = file;
       setState(() {});
-      print(image!.path);
+      if (kDebugMode) print(image!.path);
       await ImageGallerySaver.saveFile(image!.path);
       Fluttertoast.showToast(msg: 'Signature successfully saved to galery!');
     }
   }
 
   Future shareImage() async {
+    // ignore: deprecated_member_use
     await Share.shareFiles([image!.path], text: 'Here is my signature!');
   }
 
@@ -65,7 +66,7 @@ class _ResultSignatureState extends State<ResultSignature> {
           onPressed: () {
             Navigator.pop(context);
           },
-          icon: Icon(
+          icon: const Icon(
             Icons.arrow_back,
             color: Colors.black,
           ),
@@ -79,7 +80,7 @@ class _ResultSignatureState extends State<ResultSignature> {
             child: Center(
               child: image != null
                   ? Container(
-                      padding: EdgeInsets.all(15),
+                      padding: const EdgeInsets.all(15),
                       // child: Image.file(image!),
                       child: Image.file(image!),
                     )
@@ -91,8 +92,8 @@ class _ResultSignatureState extends State<ResultSignature> {
               shareImage();
             },
             child: Container(
-              padding: EdgeInsets.symmetric(vertical: 10, horizontal: 15),
-              margin: EdgeInsets.only(bottom: 25),
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+              margin: const EdgeInsets.only(bottom: 25),
               decoration: BoxDecoration(
                   color: Colors.white,
                   boxShadow: [
@@ -100,11 +101,11 @@ class _ResultSignatureState extends State<ResultSignature> {
                       color: Colors.black.withOpacity(0.1),
                       spreadRadius: 2,
                       blurRadius: 5,
-                      offset: Offset(0, 1), // changes position of shadow
+                      offset: const Offset(0, 1), // changes position of shadow
                     ),
                   ],
                   borderRadius: BorderRadius.circular(20)),
-              child: Row(
+              child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 mainAxisSize: MainAxisSize.min,
                 children: [
